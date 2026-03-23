@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Retro-flex — Team Retrospective</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#FAF9F7;--surface:#F3F1F9;--border:#E2DFEE;
+  --accent:#9B8FD4;--accent-dk:#6B5FB0;
+  --text-primary:#2D2B3D;--text-secondary:#8A87A0;
+  --drop:#F5C4B3;--drop-text:#7A3320;
+  --add:#B8DCCA;--add-text:#1E5C42;
+  --keep:#C8C4EC;--keep-text:#3C3489;
+  --improve:#F9D9A8;--improve-text:#7A5020;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;font-size:14px;line-height:1.6;color:var(--text-primary);background:var(--bg);min-height:100vh}
+
+/* ── Topbar ── */
+#topbar{position:fixed;top:0;left:0;right:0;height:52px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;z-index:100}
+.tb-left{display:flex;align-items:center;gap:12px}
+.logo{font-size:15px;font-weight:500;color:var(--text-primary);letter-spacing:-.02em}
+.logo span{color:var(--accent)}
+.room-tag{font-size:11px;color:var(--text-secondary);background:var(--surface);border:1px solid var(--border);padding:2px 10px;border-radius:20px}
+.phase-badge{font-size:11px;font-weight:500;padding:2px 10px;border-radius:20px}
+.avatars{display:flex;gap:4px}
+.av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;border:2px solid #fff;background:var(--keep);color:var(--keep-text)}
+
+/* ── Main ── */
+#main{padding:76px 24px 40px}
+
+/* ── Buttons ── */
+button{font-family:inherit;cursor:pointer;transition:all .2s ease}
+.btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 20px;font-size:13px;font-weight:500}
+.btn:hover{background:var(--accent-dk)}
+.btn:disabled{opacity:.35;cursor:default}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text-secondary);border-radius:8px;padding:8px 20px;font-size:13px}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+
+/* ── Cards ── */
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.5;color:var(--text-primary);box-shadow:0 1px 3px rgba(100,90,160,.08);transition:all .2s ease;margin-bottom:8px}
+.card-hidden{background:var(--bg);border:1px dashed var(--border);color:var(--text-secondary);text-align:center;letter-spacing:.1em;user-select:none}
+.card-flash{transform:scale(1.02);box-shadow:0 4px 12px rgba(155,143,212,.2)}
+
+/* ── Lane ── */
+.lane-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.lane{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;flex-direction:column;min-height:420px}
+.lane-header{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.lane-badge{font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px}
+.lane-cards{flex:1;overflow-y:auto}
+.lane-input{margin-top:10px}
+.lane-input textarea{width:100%;border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:inherit;font-size:13px;color:var(--text-primary);background:#fff;resize:none;min-height:72px;outline:none;transition:border-color .2s}
+.lane-input textarea:focus{border-color:var(--accent)}
+.lane-input textarea:disabled{background:var(--surface);color:var(--text-secondary);cursor:not-allowed}
+
+/* ── Vote card ── */
+.card-vote-row{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.vote-btn{font-size:11px;font-weight:500;padding:3px 10px;border-radius:6px;background:var(--surface);border:1px solid var(--border);color:var(--text-secondary);white-space:nowrap;flex-shrink:0}
+.vote-btn:hover:not(:disabled){background:var(--keep);color:var(--keep-text);border-color:var(--keep-text)}
+.vote-count{font-size:11px;color:var(--text-secondary);margin-top:4px}
+
+/* ── Lobby ── */
+#lobby-screen{display:flex;align-items:center;justify-content:center;min-height:80vh}
+.lobby-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:36px 40px;width:100%;max-width:400px;text-align:center}
+.lobby-card h1{font-size:22px;font-weight:500;margin-bottom:4px}
+.lobby-card p{color:var(--text-secondary);font-size:13px;margin-bottom:28px}
+.lobby-card input{width:100%;border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-family:inherit;font-size:14px;color:var(--text-primary);background:var(--surface);outline:none;margin-bottom:12px;transition:border-color .2s}
+.lobby-card input:focus{border-color:var(--accent);background:#fff}
+.waiting-list{margin-top:24px;padding-top:20px;border-top:1px solid var(--border);text-align:left}
+.waiting-item{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-secondary);padding:4px 0}
+.online-dot{width:6px;height:6px;border-radius:50%;background:var(--add-text);flex-shrink:0}
+
+/* ── Landing (no room in URL) ── */
+#landing-screen{display:flex;align-items:center;justify-content:center;min-height:80vh}
+.landing-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:36px 40px;width:100%;max-width:400px;text-align:center}
+.landing-card h1{font-size:24px;font-weight:500;margin-bottom:6px}
+.landing-card .sub{color:var(--text-secondary);font-size:13px;margin-bottom:28px}
+.landing-card input{width:100%;border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-family:inherit;font-size:14px;color:var(--text-primary);background:var(--surface);outline:none;margin-bottom:12px;transition:border-color .2s;text-align:center}
+.landing-card input:focus{border-color:var(--accent);background:#fff}
+
+/* ── Discussion ── */
+.disc-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:flex-start;gap:14px}
+.disc-badge{font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0;margin-top:2px}
+.disc-votes{font-size:12px;font-weight:500;color:var(--accent);min-width:32px;text-align:right;flex-shrink:0;margin-top:2px}
+
+/* ── Facilitator bar ── */
+.fac-bar{background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px 18px;display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.fac-label{font-size:13px;color:var(--text-secondary)}
+.fac-label strong{color:var(--text-primary);font-weight:500}
+
+/* ── Error ── */
+.error-banner{background:#FEF0EE;border:1px solid #F5C4B3;color:var(--drop-text);border-radius:10px;padding:10px 16px;font-size:13px;margin-bottom:16px}
+
+/* ── Utility ── */
+.section-title{font-size:12px;font-weight:500;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px}
+.flex{display:flex}.gap-8{gap:8px}.gap-12{gap:12px}.items-center{align-items:center}.justify-between{justify-content:space-between}.justify-end{justify-content:flex-end}.mt-12{margin-top:12px}.mt-20{margin-top:20px}.w-full{width:100%}
+
+/* ── Responsive ── */
+@media(max-width:640px){.lane-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:400px){.lane-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- Topbar -->
+<div id="topbar">
+  <div class="tb-left">
+    <span class="logo">retro<span>-flex</span></span>
+    <span class="room-tag" id="tb-room"></span>
+    <span class="phase-badge" id="tb-phase" style="display:none"></span>
+  </div>
+  <div class="flex items-center gap-12">
+    <span id="tb-status" style="font-size:12px;color:var(--text-secondary)"></span>
+    <div class="avatars" id="tb-avatars"></div>
+  </div>
+</div>
+
+<!-- Main content (screens swapped by JS) -->
+<div id="main">
+  <div id="error-area"></div>
+
+  <!-- Landing: no ?room in URL -->
+  <div id="landing-screen" style="display:none">
+    <div class="landing-card">
+      <h1>beacon</h1>
+      <p class="sub">A calm space for honest retrospectives</p>
+      <input id="landing-room" placeholder="room name (e.g. sprint-14)" maxlength="40"/>
+      <input id="landing-name" placeholder="your name" maxlength="30"/>
+      <button class="btn w-full mt-12" id="landing-go">Create room ↗</button>
+    </div>
+  </div>
+
+  <!-- Lobby -->
+  <div id="lobby-screen" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:center;min-height:70vh">
+      <div class="lobby-card">
+        <h1 style="font-size:20px;font-weight:500;margin-bottom:4px">Welcome to retro-flex</h1>
+        <p style="color:var(--text-secondary);font-size:13px;margin-bottom:24px">Share this link with your team</p>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--text-secondary);word-break:break-all;margin-bottom:20px" id="share-url"></div>
+        <input id="lobby-name" placeholder="your name" maxlength="30" style="width:100%;border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-family:inherit;font-size:14px;color:var(--text-primary);background:var(--surface);outline:none;margin-bottom:12px;transition:border-color .2s"/>
+        <button class="btn w-full" id="lobby-join-btn">Join session</button>
+        <div class="waiting-list" id="lobby-user-list" style="display:none">
+          <div class="section-title">In the room</div>
+        </div>
+        <div id="lobby-fac-area" style="margin-top:16px;display:none">
+          <button class="btn w-full" id="lobby-start-btn">Start session →</button>
+        </div>
+        <p id="lobby-waiting-msg" style="margin-top:16px;font-size:13px;color:var(--text-secondary);display:none">Waiting for facilitator to start…</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Writing -->
+  <div id="writing-screen" style="display:none">
+    <div class="fac-bar" id="writing-fac-bar">
+      <span class="fac-label"><span id="writing-submit-count">0 / 0</span> submitted</span>
+      <button class="btn" id="reveal-btn" disabled>Reveal cards</button>
+    </div>
+    <div class="lane-grid" id="lane-grid"></div>
+    <div class="flex justify-end mt-20">
+      <button class="btn" id="submit-cards-btn">Submit my cards</button>
+    </div>
+  </div>
+
+  <!-- Reveal (brief transition screen) -->
+  <div id="reveal-screen" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:center;min-height:60vh;flex-direction:column;gap:16px">
+      <div style="font-size:28px;font-weight:300;color:var(--accent)">revealing cards…</div>
+      <div style="font-size:13px;color:var(--text-secondary)">hold on</div>
+    </div>
+  </div>
+
+  <!-- Voting -->
+  <div id="voting-screen" style="display:none">
+    <div class="fac-bar" id="voting-fac-bar">
+      <span class="fac-label" id="voting-votes-label">3 votes remaining</span>
+      <button class="btn" id="end-voting-btn" style="display:none">End voting</button>
+    </div>
+    <div class="lane-grid" id="voting-lane-grid"></div>
+  </div>
+
+  <!-- Discussion -->
+  <div id="discussion-screen" style="display:none">
+    <div class="flex justify-between items-center" style="margin-bottom:20px">
+      <div>
+        <div style="font-size:18px;font-weight:500">Discussion</div>
+        <div style="font-size:13px;color:var(--text-secondary)">Sorted by votes — start at the top</div>
+      </div>
+      <button class="btn" id="export-btn">Export notes</button>
+    </div>
+    <div id="discussion-list"></div>
+  </div>
+
+</div><!-- /main -->
+
+<script type="module">
+// ── Firebase SDK (CDN, no npm needed) ──────────────────────────────────────
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import {
+  getDatabase, ref, set, update, get, onValue, push, remove, onDisconnect
+} from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+// ── 🔧 REPLACE THIS with your Firebase project config ─────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyBTT5JXSZ8JwMELQPMTDlSBwJlzhTd3gJc",
+  authDomain: "retro-flex.firebaseapp.com",
+  databaseURL: "https://retro-flex-default-rtdb.europe-west1.firebasedatabase.app/",
+  projectId: "retro-flex",
+  storageBucket: "retro-flex.firebasestorage.app",
+  messagingSenderId: "997058225582",
+  appId: "1:997058225582:web:ac3cd040d10352ace2d43f"
+};
+
+// ── App state ──────────────────────────────────────────────────────────────
+let db, roomId, myUserId, myName, isFacilitator=false;
+let currentPhase='lobby', allCards={}, allVotes={}, allUsers={};
+let votesRemaining=3, mySubmitted=false;
+const LANES=['drop','add','keep','improve'];
+const LANE_LABELS={drop:'Drop',add:'Add',keep:'Keep',improve:'Improve'};
+
+// ── Boot ───────────────────────────────────────────────────────────────────
+try {
+  const app = initializeApp(firebaseConfig);
+  db = getDatabase(app);
+} catch(e) {
+  showError('Having trouble connecting — check your Firebase config');
+}
+
+// Read ?room from URL
+const params = new URLSearchParams(location.search);
+roomId = params.get('room');
+
+if (!roomId) {
+  // No room in URL — show landing screen
+  show('landing');
+  document.getElementById('landing-go').onclick = () => {
+    const r = document.getElementById('landing-room').value.trim().replace(/\s+/g,'-').toLowerCase();
+    const n = document.getElementById('landing-name').value.trim();
+    if(!r || !n){alert('Please enter a room name and your name.');return;}
+    // Redirect to ?room=roomName with name stored
+    sessionStorage.setItem('beacon-name', n);
+    location.href = location.pathname + '?room=' + encodeURIComponent(r);
+  };
+} else {
+  document.getElementById('tb-room').textContent = roomId;
+  document.getElementById('share-url').textContent = location.href;
+  show('lobby');
+
+  // Pre-fill name if coming from landing screen
+  const savedName = sessionStorage.getItem('beacon-name');
+  if(savedName) document.getElementById('lobby-name').value = savedName;
+
+  // Join button
+  document.getElementById('lobby-join-btn').onclick = joinRoom;
+  document.getElementById('lobby-name').addEventListener('keydown', e => {
+    if(e.key==='Enter') joinRoom();
+  });
+}
+
+// ── Join room ──────────────────────────────────────────────────────────────
+async function joinRoom() {
+  const nameInput = document.getElementById('lobby-name');
+  myName = nameInput.value.trim();
+  if(!myName){alert('Please enter your name.');return;}
+
+  // Get or create userId from sessionStorage (survives page refresh in same tab)
+  myUserId = sessionStorage.getItem('beacon-uid') || crypto.randomUUID();
+  sessionStorage.setItem('beacon-uid', myUserId);
+  sessionStorage.setItem('beacon-name', myName);
+
+  nameInput.disabled = true;
+  document.getElementById('lobby-join-btn').disabled = true;
+
+  const roomRef = ref(db, `rooms/${roomId}`);
+  const snap = await get(roomRef);
+
+  if(!snap.exists()) {
+    // First to join — become facilitator, create room
+    await set(ref(db, `rooms/${roomId}/meta`), {
+      facilitator: myUserId,
+      phase: 'lobby',
+      createdAt: Date.now()
+    });
+    isFacilitator = true;
+  } else {
+    const meta = snap.val().meta || {};
+    isFacilitator = (meta.facilitator === myUserId);
+    // If returning user (same UUID), they may already be facilitator
+    if(!meta.facilitator) isFacilitator = true;
+  }
+
+  // Write user presence
+  const userRef = ref(db, `rooms/${roomId}/users/${myUserId}`);
+  await set(userRef, { name: myName, joinedAt: Date.now() });
+
+  // Remove user entry when tab closes (Firebase onDisconnect magic)
+  onDisconnect(userRef).remove();
+
+  // Start listening to room
+  listenToRoom();
+  renderTopbar();
+}
+
+// ── Firebase listeners ─────────────────────────────────────────────────────
+function listenToRoom() {
+  // Listen to phase changes
+  onValue(ref(db, `rooms/${roomId}/meta`), snap => {
+    if(!snap.exists()) return;
+    const meta = snap.val();
+    const newPhase = meta.phase;
+    isFacilitator = (meta.facilitator === myUserId);
+    if(newPhase !== currentPhase) {
+      currentPhase = newPhase;
+      renderPhase();
+    }
+  });
+
+  // Listen to users (for avatars + lobby list)
+  onValue(ref(db, `rooms/${roomId}/users`), snap => {
+    allUsers = snap.val() || {};
+    renderAvatars();
+    renderLobbyUserList();
+    updateWritingSubmitCount();
+  });
+
+  // Listen to cards
+  onValue(ref(db, `rooms/${roomId}/cards`), snap => {
+    allCards = snap.val() || {};
+    if(currentPhase==='writing') renderWritingCards();
+    if(currentPhase==='voting') renderVotingCards();
+    if(currentPhase==='discussion') renderDiscussion();
+    updateWritingSubmitCount();
+    updateRevealButton();
+  });
+
+  // Listen to votes
+  onValue(ref(db, `rooms/${roomId}/votes`), snap => {
+    allVotes = snap.val() || {};
+    if(currentPhase==='voting') renderVotingCards();
+    if(currentPhase==='discussion') renderDiscussion();
+  });
+}
+
+// ── Phase router ───────────────────────────────────────────────────────────
+function renderPhase() {
+  // Update topbar phase badge
+  const badge = document.getElementById('tb-phase');
+  badge.style.display='inline-block';
+  const phaseConfig = {
+    lobby:      {label:'Lobby',      bg:'var(--surface)',  color:'var(--text-secondary)'},
+    writing:    {label:'Writing',    bg:'var(--keep)',     color:'var(--keep-text)'},
+    reveal:     {label:'Revealing',  bg:'var(--improve)',  color:'var(--improve-text)'},
+    voting:     {label:'Voting',     bg:'var(--add)',      color:'var(--add-text)'},
+    discussion: {label:'Discussion', bg:'var(--accent)',   color:'#fff'},
+  };
+  const cfg = phaseConfig[currentPhase] || phaseConfig.lobby;
+  badge.textContent = cfg.label;
+  badge.style.background = cfg.bg;
+  badge.style.color = cfg.color;
+
+  // Show correct screen
+  ['lobby','writing','reveal','voting','discussion'].forEach(p => {
+    document.getElementById(p+'-screen').style.display = (p===currentPhase) ? 'block' : 'none';
+  });
+
+  if(currentPhase==='lobby')      setupLobbyPhase();
+  if(currentPhase==='writing')    setupWritingPhase();
+  if(currentPhase==='reveal')     setupRevealPhase();
+  if(currentPhase==='voting')     setupVotingPhase();
+  if(currentPhase==='discussion') renderDiscussion();
+}
+
+// ── Lobby phase ────────────────────────────────────────────────────────────
+function setupLobbyPhase() {
+  renderLobbyUserList();
+  if(isFacilitator) {
+    document.getElementById('lobby-fac-area').style.display = 'block';
+    document.getElementById('lobby-waiting-msg').style.display = 'none';
+    document.getElementById('lobby-start-btn').onclick = () => {
+      update(ref(db, `rooms/${roomId}/meta`), {phase:'writing'});
+    };
+  } else {
+    document.getElementById('lobby-fac-area').style.display = 'none';
+    document.getElementById('lobby-waiting-msg').style.display = 'block';
+  }
+}
+
+function renderLobbyUserList() {
+  const list = document.getElementById('lobby-user-list');
+  if(Object.keys(allUsers).length===0){list.style.display='none';return;}
+  list.style.display='block';
+  // Keep header, replace items
+  const items = list.querySelectorAll('.waiting-item');
+  items.forEach(i=>i.remove());
+  Object.entries(allUsers).forEach(([uid, u]) => {
+    const div = document.createElement('div');
+    div.className='waiting-item';
+    div.innerHTML=`<span class="online-dot"></span>${esc(u.name)}${uid===myUserId?' (you)':''}${isFacilitator && uid===myUserId?' <span style="font-size:10px;background:var(--improve);color:var(--improve-text);padding:1px 7px;border-radius:20px;margin-left:4px">facilitator</span>':''}`;
+    list.appendChild(div);
+  });
+}
+
+// ── Writing phase ──────────────────────────────────────────────────────────
+function setupWritingPhase() {
+  buildLaneGrid();
+  renderWritingCards();
+  updateRevealButton();
+  updateWritingSubmitCount();
+
+  // Show/hide reveal button based on facilitator
+  const facBar = document.getElementById('writing-fac-bar');
+  facBar.style.display = isFacilitator ? 'flex' : 'none';
+
+  document.getElementById('reveal-btn').onclick = () => {
+    update(ref(db, `rooms/${roomId}/meta`), {phase:'reveal'});
+  };
+
+  // Submit button
+  const submitBtn = document.getElementById('submit-cards-btn');
+  submitBtn.style.display = mySubmitted ? 'none' : 'inline-block';
+  submitBtn.onclick = submitCards;
+}
+
+function buildLaneGrid() {
+  const grid = document.getElementById('lane-grid');
+  if(grid.querySelector('.lane')) return; // already built
+  LANES.forEach(lane => {
+    const col = document.createElement('div');
+    col.className='lane';
+    col.innerHTML=`
+      <div class="lane-header">
+        <span class="lane-badge" style="background:var(--${lane});color:var(--${lane}-text)">${LANE_LABELS[lane]}</span>
+      </div>
+      <div class="lane-cards" id="cards-${lane}"></div>
+      <div class="lane-input">
+        <textarea id="ta-${lane}" placeholder="Add a card to ${LANE_LABELS[lane]}…" rows="3"></textarea>
+      </div>`;
+    grid.appendChild(col);
+  });
+}
+
+function renderWritingCards() {
+  LANES.forEach(lane => {
+    const container = document.getElementById('cards-'+lane);
+    if(!container) return;
+    container.innerHTML='';
+    Object.entries(allCards).forEach(([cid, c]) => {
+      if(c.lane!==lane) return;
+      const div = document.createElement('div');
+      // Show own cards; hide others'
+      if(c.authorId===myUserId) {
+        div.className='card';
+        div.textContent=c.text;
+      } else {
+        div.className='card card-hidden';
+        div.textContent='···';
+      }
+      container.appendChild(div);
+    });
+  });
+}
+
+async function submitCards() {
+  const updates={};
+  let hasAny=false;
+  LANES.forEach(lane => {
+    const ta = document.getElementById('ta-'+lane);
+    const txt = ta ? ta.value.trim() : '';
+    if(txt) {
+      const cardId = `card_${Date.now()}_${lane}`;
+      updates[`rooms/${roomId}/cards/${cardId}`]={
+        authorId:myUserId, lane, text:txt, submittedAt:Date.now()
+      };
+      hasAny=true;
+    }
+  });
+  if(!hasAny){alert('Write at least one card before submitting.');return;}
+  await update(ref(db), updates);
+  mySubmitted=true;
+  // Lock textareas
+  LANES.forEach(lane => {
+    const ta=document.getElementById('ta-'+lane);
+    if(ta){ta.disabled=true;ta.style.opacity='.5';}
+  });
+  document.getElementById('submit-cards-btn').style.display='none';
+  updateRevealButton();
+}
+
+function updateWritingSubmitCount() {
+  if(currentPhase!=='writing') return;
+  // A user is "submitted" if they have at least one card
+  const authorIds = new Set(Object.values(allCards).map(c=>c.authorId));
+  const total = Object.keys(allUsers).length;
+  const submitted = [...authorIds].filter(id=>allUsers[id]).length;
+  document.getElementById('writing-submit-count').textContent=`${submitted} / ${total}`;
+  updateRevealButton();
+}
+
+function updateRevealButton() {
+  if(currentPhase!=='writing'||!isFacilitator) return;
+  const authorIds = new Set(Object.values(allCards).map(c=>c.authorId));
+  const total = Object.keys(allUsers).length;
+  const allIn = total>0 && [...Object.keys(allUsers)].every(uid=>authorIds.has(uid));
+  const btn = document.getElementById('reveal-btn');
+  if(btn) btn.disabled=!allIn;
+}
+
+// ── Reveal phase ───────────────────────────────────────────────────────────
+function setupRevealPhase() {
+  // Auto-advance to voting after 2s
+  setTimeout(()=>{
+    if(isFacilitator) {
+      update(ref(db, `rooms/${roomId}/meta`), {phase:'voting'});
+    }
+  }, 2000);
+}
+
+// ── Voting phase ───────────────────────────────────────────────────────────
+function setupVotingPhase() {
+  votesRemaining=3;
+  document.getElementById('voting-votes-label').textContent=`${votesRemaining} votes remaining`;
+  const endBtn=document.getElementById('end-voting-btn');
+  endBtn.style.display=isFacilitator?'inline-block':'none';
+  endBtn.onclick=()=>update(ref(db,`rooms/${roomId}/meta`),{phase:'discussion'});
+  renderVotingCards();
+}
+
+function renderVotingCards() {
+  const grid=document.getElementById('voting-lane-grid');
+  grid.innerHTML='';
+  LANES.forEach(lane=>{
+    const laneCards=Object.entries(allCards).filter(([,c])=>c.lane===lane);
+    const col=document.createElement('div');
+    col.className='lane';
+    col.innerHTML=`<div class="lane-header"><span class="lane-badge" style="background:var(--${lane});color:var(--${lane}-text)">${LANE_LABELS[lane]}</span></div>`;
+    const cardArea=document.createElement('div');
+    laneCards.forEach(([cid,c])=>{
+      const votes=allVotes[cid]||{};
+      const count=Object.keys(votes).length;
+      const alreadyVoted=!!votes[myUserId];
+      const card=document.createElement('div');
+      card.className='card';
+      card.innerHTML=`<div class="card-vote-row">
+        <div><div>${esc(c.text)}</div><div class="vote-count">${count} vote${count!==1?'s':''}</div></div>
+        <button class="vote-btn" data-cid="${cid}" ${alreadyVoted||votesRemaining<=0?'disabled':''}>
+          ${alreadyVoted?'voted':'+ vote'}
+        </button></div>`;
+      card.querySelector('.vote-btn').onclick=()=>castVote(cid);
+      cardArea.appendChild(card);
+    });
+    col.appendChild(cardArea);
+    grid.appendChild(col);
+  });
+}
+
+async function castVote(cardId) {
+  if(votesRemaining<=0) return;
+  const votes=allVotes[cardId]||{};
+  if(votes[myUserId]) return; // already voted
+  await set(ref(db,`rooms/${roomId}/votes/${cardId}/${myUserId}`),true);
+  votesRemaining--;
+  document.getElementById('voting-votes-label').textContent=`${votesRemaining} vote${votesRemaining!==1?'s':''} remaining`;
+  renderVotingCards();
+}
+
+// ── Discussion phase ───────────────────────────────────────────────────────
+function renderDiscussion() {
+  const list=document.getElementById('discussion-list');
+  if(!list) return;
+  // Sort cards by vote count descending
+  const sorted=Object.entries(allCards).map(([cid,c])=>{
+    const votes=allVotes[cid]||{};
+    return{cid,c,voteCount:Object.keys(votes).length};
+  }).sort((a,b)=>b.voteCount-a.voteCount);
+
+  list.innerHTML='';
+  sorted.forEach(({cid,c,voteCount})=>{
+    const div=document.createElement('div');
+    div.className='disc-card';
+    div.innerHTML=`
+      <span class="disc-badge" style="background:var(--${c.lane});color:var(--${c.lane}-text)">${LANE_LABELS[c.lane]}</span>
+      <div style="flex:1;font-size:14px">${esc(c.text)}</div>
+      <span class="disc-votes">${voteCount} ▲</span>`;
+    list.appendChild(div);
+  });
+
+  document.getElementById('export-btn').onclick=exportNotes;
+}
+
+function exportNotes() {
+  const sorted=Object.entries(allCards).map(([cid,c])=>{
+    const voteCount=Object.keys(allVotes[cid]||{}).length;
+    return{c,voteCount};
+  }).sort((a,b)=>b.voteCount-a.voteCount);
+
+  let txt=`Beacon Retrospective — ${roomId}\n${'─'.repeat(40)}\n\n`;
+  LANES.forEach(lane=>{
+    txt+=`${LANE_LABELS[lane].toUpperCase()}\n`;
+    sorted.filter(({c})=>c.lane===lane).forEach(({c,voteCount})=>{
+      txt+=`  [${voteCount} votes] ${c.text}\n`;
+    });
+    txt+='\n';
+  });
+  const blob=new Blob([txt],{type:'text/plain'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download=`retro-${roomId}.txt`;
+  a.click();
+}
+
+// ── UI helpers ─────────────────────────────────────────────────────────────
+function show(screenId) {
+  ['landing','lobby','writing','reveal','voting','discussion'].forEach(id=>{
+    const el=document.getElementById(id+'-screen');
+    if(el) el.style.display=(id===screenId)?'block':'none';
+  });
+}
+
+function renderTopbar() {
+  // Called once after join to wire up phase
+  renderPhase();
+}
+
+function renderAvatars() {
+  const container=document.getElementById('tb-avatars');
+  container.innerHTML='';
+  const colors=[
+    {bg:'var(--keep)',c:'var(--keep-text)'},
+    {bg:'var(--add)',c:'var(--add-text)'},
+    {bg:'var(--improve)',c:'var(--improve-text)'},
+    {bg:'var(--drop)',c:'var(--drop-text)'},
+  ];
+  Object.entries(allUsers).forEach(([uid,u],i)=>{
+    const av=document.createElement('div');
+    av.className='av';
+    const col=colors[i%colors.length];
+    av.style.background=col.bg;
+    av.style.color=col.c;
+    av.title=u.name;
+    av.textContent=u.name.charAt(0).toUpperCase();
+    container.appendChild(av);
+  });
+}
+
+function showError(msg) {
+  const area=document.getElementById('error-area');
+  area.innerHTML=`<div class="error-banner">${msg}</div>`;
+}
+
+// Escape HTML to prevent XSS
+function esc(str){
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+</body>
+</html>
