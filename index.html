@@ -125,7 +125,7 @@ button{font-family:inherit;cursor:pointer;transition:all .2s ease}
   <!-- Landing: no ?room in URL -->
   <div id="landing-screen" style="display:none">
     <div class="landing-card">
-      <h1>beacon</h1>
+      <h1>retro-flex</h1>
       <p class="sub">A calm space for honest retrospectives</p>
       <input id="landing-room" placeholder="room name (e.g. sprint-14)" maxlength="40"/>
       <input id="landing-name" placeholder="your name" maxlength="30"/>
@@ -241,7 +241,7 @@ if (!roomId) {
     const n = document.getElementById('landing-name').value.trim();
     if(!r || !n){alert('Please enter a room name and your name.');return;}
     // Redirect to ?room=roomName with name stored
-    sessionStorage.setItem('beacon-name', n);
+    sessionStorage.setItem('retroflex-name', n);
     location.href = location.pathname + '?room=' + encodeURIComponent(r);
   };
 } else {
@@ -250,7 +250,7 @@ if (!roomId) {
   show('lobby');
 
   // Pre-fill name if coming from landing screen
-  const savedName = sessionStorage.getItem('beacon-name');
+  const savedName = sessionStorage.getItem('retro-flex-name');
   if(savedName) document.getElementById('lobby-name').value = savedName;
 
   // Join button
@@ -267,9 +267,9 @@ async function joinRoom() {
   if(!myName){alert('Please enter your name.');return;}
 
   // Get or create userId from sessionStorage (survives page refresh in same tab)
-  myUserId = sessionStorage.getItem('beacon-uid') || crypto.randomUUID();
-  sessionStorage.setItem('beacon-uid', myUserId);
-  sessionStorage.setItem('beacon-name', myName);
+  myUserId = sessionStorage.getItem('retro-flex-uid') || crypto.randomUUID();
+  sessionStorage.setItem('retro-flex-uid', myUserId);
+  sessionStorage.setItem('retro-flex-name', myName);
 
   nameInput.disabled = true;
   document.getElementById('lobby-join-btn').disabled = true;
@@ -596,7 +596,7 @@ function exportNotes() {
     return{c,voteCount};
   }).sort((a,b)=>b.voteCount-a.voteCount);
 
-  let txt=`Beacon Retrospective — ${roomId}\n${'─'.repeat(40)}\n\n`;
+  let txt=`Retroflex Retrospective — ${roomId}\n${'─'.repeat(40)}\n\n`;
   LANES.forEach(lane=>{
     txt+=`${LANE_LABELS[lane].toUpperCase()}\n`;
     sorted.filter(({c})=>c.lane===lane).forEach(({c,voteCount})=>{
