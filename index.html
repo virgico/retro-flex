@@ -457,9 +457,6 @@ function setupRevealPhase(){
 
 // ── Voting ─────────────────────────────────────────────────────────────────
 function setupVotingPhase(){
-  // Re-calculate votes already cast in a previous session/refresh
-  const alreadyCast=Object.values(allVotes).filter(v=>v&&v[myUserId]).length;
-  votesRemaining=Math.max(0, 3-alreadyCast);
   updateVotesLabel();
   const endBtn=document.getElementById('end-voting-btn');
   endBtn.style.display=isFacilitator?'inline-block':'none';
@@ -469,7 +466,7 @@ function setupVotingPhase(){
 
 function updateVotesLabel(){
   const el=document.getElementById('voting-votes-label');
-  if(el) el.textContent=`${votesRemaining} vote${votesRemaining!==1?'s':''} remaining`;
+  if(el) el.textContent='Unlimited votes — one per card';
 }
 
 function renderVotingCards(){
@@ -486,8 +483,8 @@ function renderVotingCards(){
       const votes=allVotes[cid]||{};
       const count=Object.keys(votes).length;
       const alreadyVoted=!!votes[myUserId];
-      // Disable if already voted on this card OR no votes left
-      const disabled=alreadyVoted||votesRemaining<=0;
+      // Disable only if already voted on this card — no vote cap
+      const disabled=alreadyVoted;
       const card=document.createElement('div');
       card.className='card';
       card.innerHTML=`<div class="card-vote-row">
@@ -587,44 +584,62 @@ function renderDiscussion(){
   document.getElementById('export-btn').onclick=exportPDF;
 }
 
-// ── Timer ──────────────────────────────────────────────────────────────────
-function startTimer(cid){
-  // Stop any existing timer first
-  if(timerInterval) stopTimer(timerCardId, true);
-
-  timerCardId=cid;
-  timerSeconds=0;
-  timerRunning=true;
-
-  const startBtn=document.getElementById(`timer-start-${cid}`);
-  const stopBtn=document.getElementById(`timer-stop-${cid}`);
-  if(startBtn) startBtn.style.display='none';
-  if(stopBtn)  stopBtn.style.display='inline-block';
-
-  timerInterval=setInterval(()=>{
-    timerSeconds++;
-    const remaining=TIMER_MAX-timerSeconds;
-    updateTimerDisplay(cid, remaining);
-    if(remaining<=0){
-      clearInterval(timerInterval);
-      timerRunning=false;
-      ringBell();
-      if(startBtn) startBtn.style.display='inline-block';
-      if(stopBtn)  stopBtn.style.display='none';
-      // Reset display
-      setTimeout(()=>updateTimerDisplay(cid, TIMER_MAX),3000);
+// ── Timer (synced via Firebase) ────────────────────────────────────────────
+function listenToTimer(){
+  onValue(ref(db,`rooms/${roomId}/timer`),snap=>{
+    if(!snap.exists()){resetAllTimerDisplays();return;}
+    const t=snap.val();
+    // Clear any local tick interval — we drive from Firebase startedAt
+    if(timerInterval){clearInterval(timerInterval);timerInterval=null;}
+    if(t.running){
+      timerCardId=t.cardId;
+      // Show running state on correct card
+      updateTimerButtons(t.cardId, true);
+      // Tick locally from server startedAt
+      function tick(){
+        const elapsed=Math.floor((Date.now()-t.startedAt)/1000);
+        const remaining=Math.max(0, TIMER_MAX-elapsed);
+        updateTimerDisplay(t.cardId, remaining);
+        if(remaining<=0){
+          clearInterval(timerInterval);timerInterval=null;
+          ringBell();
+          if(isFacilitator) set(ref(db,`rooms/${roomId}/timer`),{running:false,cardId:t.cardId,startedAt:0});
+        }
+      }
+      tick();
+      timerInterval=setInterval(tick,1000);
+    } else {
+      updateTimerButtons(t.cardId, false);
+      updateTimerDisplay(t.cardId, TIMER_MAX);
     }
-  },1000);
+  });
 }
 
-function stopTimer(cid, silent=false){
+function updateTimerButtons(cid, running){
+  const startBtn=document.getElementById(`timer-start-${cid}`);
+  const stopBtn=document.getElementById(`timer-stop-${cid}`);
+  const statusEl=document.getElementById(`timer-status-${cid}`);
+  if(startBtn) startBtn.style.display=running?'none':'inline-block';
+  if(stopBtn)  stopBtn.style.display=running?'inline-block':'none';
+  if(statusEl) statusEl.textContent=running?'running…':'waiting…';
+}
+
+function resetAllTimerDisplays(){
+  document.querySelectorAll('[id^="timer-disp-"]').forEach(el=>{
+    const cid=el.id.replace('timer-disp-','');
+    updateTimerDisplay(cid,TIMER_MAX);
+    updateTimerButtons(cid,false);
+  });
+}
+function startTimer(cid){
   if(timerInterval){clearInterval(timerInterval);timerInterval=null;}
-  timerRunning=false;
-  const startBtn=document.getElementById(`timer-start-${cid||timerCardId}`);
-  const stopBtn=document.getElementById(`timer-stop-${cid||timerCardId}`);
-  if(startBtn) startBtn.style.display='inline-block';
-  if(stopBtn)  stopBtn.style.display='none';
-  updateTimerDisplay(cid||timerCardId, TIMER_MAX);
+  // Write start state to Firebase — all clients pick it up via listenToTimer
+  set(ref(db,`rooms/${roomId}/timer`),{running:true,cardId:cid,startedAt:Date.now()});
+}
+
+function stopTimer(cid){
+  if(timerInterval){clearInterval(timerInterval);timerInterval=null;}
+  set(ref(db,`rooms/${roomId}/timer`),{running:false,cardId:cid||timerCardId,startedAt:0});
 }
 
 function updateTimerDisplay(cid, remaining){
