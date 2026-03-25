@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Retro-flex — Team Retrospective</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  --bg:#FAF9F7;--surface:#F3F1F9;--border:#E2DFEE;
+  --accent:#9B8FD4;--accent-dk:#6B5FB0;
+  --text-primary:#2D2B3D;--text-secondary:#8A87A0;
+  --drop:#F5C4B3;--drop-text:#7A3320;
+  --add:#B8DCCA;--add-text:#1E5C42;
+  --keep:#C8C4EC;--keep-text:#3C3489;
+  --improve:#F9D9A8;--improve-text:#7A5020;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;font-size:14px;line-height:1.6;color:var(--text-primary);background:var(--bg);min-height:100vh}
+#topbar{position:fixed;top:0;left:0;right:0;height:52px;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;z-index:100}
+.tb-left{display:flex;align-items:center;gap:12px}
+.logo{font-size:15px;font-weight:500;color:var(--text-primary);letter-spacing:-.02em}
+.logo span{color:var(--accent)}
+.room-tag{font-size:11px;color:var(--text-secondary);background:var(--surface);border:1px solid var(--border);padding:2px 10px;border-radius:20px}
+.phase-badge{font-size:11px;font-weight:500;padding:2px 10px;border-radius:20px}
+.avatars{display:flex;gap:4px}
+.av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;border:2px solid #fff;background:var(--keep);color:var(--keep-text)}
+#main{padding:76px 24px 40px}
+button{font-family:inherit;cursor:pointer;transition:all .2s ease}
+.btn{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 20px;font-size:13px;font-weight:500}
+.btn:hover{background:var(--accent-dk)}
+.btn:disabled{opacity:.35;cursor:default}
+.btn-sm{background:var(--accent);color:#fff;border:none;border-radius:6px;padding:5px 12px;font-size:12px;font-weight:500}
+.btn-sm:hover{background:var(--accent-dk)}
+.btn-sm:disabled{opacity:.35;cursor:default}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text-secondary);border-radius:8px;padding:8px 20px;font-size:13px}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent)}
+.btn-danger{background:#E24B4A;color:#fff;border:none;border-radius:8px;padding:8px 20px;font-size:13px;font-weight:500}
+.btn-danger:hover{background:#c03a39}
+.btn-danger-sm{background:transparent;border:1px solid #F5C4B3;color:#7A3320;border-radius:6px;padding:3px 8px;font-size:11px}
+.btn-danger-sm:hover{background:#FBEAE7}
+
+/* Cards */
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.5;color:var(--text-primary);box-shadow:0 1px 3px rgba(100,90,160,.08);transition:all .2s ease;margin-bottom:8px}
+.card-hidden{background:var(--bg);border:1px dashed var(--border);color:var(--text-secondary);text-align:center;letter-spacing:.1em;user-select:none}
+.my-card{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.my-card-text{flex:1;font-size:13px;line-height:1.5}
+
+/* Lane */
+.lane-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.lane{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;flex-direction:column;transition:opacity .3s}
+.lane.locked{opacity:.45;pointer-events:none}
+.lane.pending{opacity:.45}
+.lane-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.lane-badge{font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px}
+.lane-cards{flex:1;min-height:120px}
+.lane-input{margin-top:8px}
+.lane-input textarea{width:100%;border:1px solid var(--border);border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13px;color:var(--text-primary);background:#fff;resize:none;min-height:60px;outline:none;transition:border-color .2s}
+.lane-input textarea:focus{border-color:var(--accent)}
+
+/* Lane timer */
+.lane-timer{display:flex;align-items:center;gap:8px;margin-bottom:10px;background:#fff;border:1px solid var(--border);border-radius:8px;padding:7px 10px}
+.lane-timer-disp{font-size:14px;font-weight:500;color:var(--text-primary);min-width:38px;font-variant-numeric:tabular-nums}
+.lane-timer-disp.urgent{color:#E24B4A}
+.lane-timer-bar-wrap{flex:1;height:3px;background:var(--border);border-radius:3px;overflow:hidden}
+.lane-timer-bar{height:3px;background:var(--accent);border-radius:3px;transition:width 1s linear,background .5s}
+.lane-timer-bar.urgent{background:#E24B4A}
+.lane-status-msg{font-size:11px;color:var(--text-secondary);text-align:center;padding:6px 0}
+
+/* Vote */
+.card-vote-row{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.vote-btn{font-size:11px;font-weight:500;padding:3px 10px;border-radius:6px;background:var(--surface);border:1px solid var(--border);color:var(--text-secondary);white-space:nowrap;flex-shrink:0;cursor:pointer}
+.vote-btn:hover:not(:disabled){background:var(--keep);color:var(--keep-text);border-color:var(--keep-text)}
+.vote-btn:disabled{opacity:.45;cursor:default}
+.vote-count{font-size:11px;color:var(--text-secondary);margin-top:4px}
+
+/* Lobby / Landing */
+.center-screen{display:flex;align-items:center;justify-content:center;min-height:80vh}
+.modal-card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:36px 40px;width:100%;max-width:400px;text-align:center}
+.modal-card input{width:100%;border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-family:inherit;font-size:14px;color:var(--text-primary);background:var(--surface);outline:none;margin-bottom:12px;transition:border-color .2s}
+.modal-card input:focus{border-color:var(--accent);background:#fff}
+.waiting-list{margin-top:20px;padding-top:16px;border-top:1px solid var(--border);text-align:left}
+.waiting-item{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-secondary);padding:3px 0}
+.online-dot{width:6px;height:6px;border-radius:50%;background:var(--add-text);flex-shrink:0}
+
+/* Discussion timer */
+.timer-block{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;margin-top:8px}
+.timer-display{font-size:20px;font-weight:500;color:var(--text-primary);min-width:52px;font-variant-numeric:tabular-nums}
+.timer-display.urgent{color:#E24B4A}
+.timer-bar-wrap{flex:1;height:4px;background:var(--border);border-radius:4px;overflow:hidden}
+.timer-bar{height:4px;background:var(--accent);border-radius:4px;transition:width .5s linear,background .5s}
+.timer-bar.urgent{background:#E24B4A}
+
+.disc-card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px}
+.disc-badge{font-size:11px;font-weight:500;padding:3px 10px;border-radius:20px;white-space:nowrap;flex-shrink:0;margin-top:2px}
+.fac-bar{background:#fff;border:1px solid var(--border);border-radius:12px;padding:12px 18px;display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.error-banner{background:#FEF0EE;border:1px solid #F5C4B3;color:var(--drop-text);border-radius:10px;padding:10px 16px;font-size:13px;margin-bottom:16px}
+.section-title{font-size:12px;font-weight:500;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.06em;margin-bottom:14px}
+.flex{display:flex}.gap-8{gap:8px}.gap-12{gap:12px}.items-center{align-items:center}.justify-between{justify-content:space-between}.justify-end{justify-content:flex-end}.mt-12{margin-top:12px}.mt-16{margin-top:16px}.w-full{width:100%}
+@media(max-width:640px){.lane-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:400px){.lane-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <div class="tb-left">
+    <span class="logo">retro<span>-flex</span></span>
+    <span class="room-tag" id="tb-room"></span>
+    <span class="phase-badge" id="tb-phase" style="display:none"></span>
+  </div>
+  <div class="flex items-center gap-12">
+    <div class="avatars" id="tb-avatars"></div>
+  </div>
+</div>
+
+<div id="main">
+  <div id="error-area"></div>
+
+  <!-- Landing -->
+  <div id="landing-screen" style="display:none">
+    <div class="center-screen">
+      <div class="modal-card">
+        <div style="font-size:22px;font-weight:500;margin-bottom:4px">retro-flex</div>
+        <p style="color:var(--text-secondary);font-size:13px;margin-bottom:28px">A calm space for honest retrospectives</p>
+        <input id="landing-room" placeholder="room name (e.g. sprint-14)" maxlength="40"/>
+        <input id="landing-name" placeholder="your name" maxlength="30"/>
+        <button class="btn w-full mt-12" id="landing-go">Create room →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lobby -->
+  <div id="lobby-screen" style="display:none">
+    <div class="center-screen">
+      <div class="modal-card">
+        <div style="font-size:20px;font-weight:500;margin-bottom:4px">Welcome to retro-flex</div>
+        <p style="color:var(--text-secondary);font-size:13px;margin-bottom:20px">Share this link with your team</p>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--text-secondary);word-break:break-all;margin-bottom:20px" id="share-url"></div>
+        <input id="lobby-name" placeholder="your name" maxlength="30"/>
+        <button class="btn w-full" id="lobby-join-btn">Join session</button>
+        <div class="waiting-list" id="lobby-user-list" style="display:none">
+          <div class="section-title">In the room</div>
+        </div>
+        <div id="lobby-fac-area" style="margin-top:16px;display:none">
+          <button class="btn w-full" id="lobby-start-btn">Start session →</button>
+        </div>
+        <p id="lobby-waiting-msg" style="margin-top:16px;font-size:13px;color:var(--text-secondary);display:none">Waiting for facilitator to start…</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Writing -->
+  <div id="writing-screen" style="display:none">
+    <div class="fac-bar" id="writing-fac-bar" style="display:none">
+      <span style="font-size:13px;color:var(--text-secondary)"><span id="writing-submit-count">0 / 0</span> lanes submitted</span>
+      <button class="btn" id="reveal-btn" disabled>Reveal cards</button>
+    </div>
+    <div style="font-size:13px;color:var(--text-secondary);margin-bottom:16px" id="writing-status-nonFac"></div>
+    <div class="lane-grid" id="lane-grid"></div>
+  </div>
+
+  <!-- Reveal -->
+  <div id="reveal-screen" style="display:none">
+    <div style="display:flex;align-items:center;justify-content:center;min-height:60vh;flex-direction:column;gap:16px">
+      <div style="font-size:28px;font-weight:300;color:var(--accent)">revealing cards…</div>
+      <div style="font-size:13px;color:var(--text-secondary)">hold on</div>
+    </div>
+  </div>
+
+  <!-- Voting -->
+  <div id="voting-screen" style="display:none">
+    <div class="fac-bar">
+      <span style="font-size:13px;color:var(--text-secondary)">Unlimited votes · one per card</span>
+      <button class="btn" id="end-voting-btn" style="display:none">End voting →</button>
+    </div>
+    <div class="lane-grid" id="voting-lane-grid"></div>
+  </div>
+
+  <!-- Discussion -->
+  <div id="discussion-screen" style="display:none">
+    <div class="flex justify-between items-center" style="margin-bottom:20px">
+      <div>
+        <div style="font-size:18px;font-weight:500">Discussion</div>
+        <div style="font-size:13px;color:var(--text-secondary)">Sorted by votes — start at the top</div>
+      </div>
+      <button class="btn" id="export-btn">Export PDF</button>
+    </div>
+    <div id="discussion-list"></div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import { getDatabase, ref, set, update, get, onValue, remove, onDisconnect } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBTT5JXSZ8JwMELQPMTDlSBwJIzhTd3gJc",
+  authDomain: "retro-flex.firebaseapp.com",
+  databaseURL: "https://retro-flex-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "retro-flex",
+  storageBucket: "retro-flex.firebasestorage.app",
+  messagingSenderId: "997058225582",
+  appId: "1:997058225582:web:ac3cd040d10352ace2d43f"
+};
+
+// ── State ──────────────────────────────────────────────────────────────────
+let db, roomId, myUserId, myName, isFacilitator=false;
+let currentPhase='lobby', allCards={}, allVotes={}, allUsers={};
+let timerInterval=null, timerCardId=null;
+// Per-lane writing timer: tracks local intervals
+let laneTimerIntervals={};
+// Which lanes this user has submitted
+let submittedLanes=new Set();
+// Lane unlock order — a lane opens only after the previous is submitted
+const LANES=['drop','add','keep','improve'];
+const LANE_LABELS={drop:'Drop',add:'Add',keep:'Keep',improve:'Improve'};
+const LANE_TIMER=120; // 2 minutes per lane
+const DISC_TIMER=240; // 4 minutes for discussion
+
+// ── Init ───────────────────────────────────────────────────────────────────
+try{const app=initializeApp(firebaseConfig);db=getDatabase(app);}
+catch(e){showError('Having trouble connecting — check your Firebase config');}
+
+const params=new URLSearchParams(location.search);
+roomId=params.get('room');
+
+if(!roomId){
+  show('landing');
+  document.getElementById('landing-go').onclick=()=>{
+    const r=document.getElementById('landing-room').value.trim().replace(/\s+/g,'-').toLowerCase();
+    const n=document.getElementById('landing-name').value.trim();
+    if(!r||!n){alert('Please enter a room name and your name.');return;}
+    sessionStorage.setItem('rf-name',n);
+    location.href=location.pathname+'?room='+encodeURIComponent(r);
+  };
+} else {
+  document.getElementById('tb-room').textContent=roomId;
+  document.getElementById('share-url').textContent=location.href;
+  show('lobby');
+  const saved=sessionStorage.getItem('rf-name');
+  if(saved) document.getElementById('lobby-name').value=saved;
+  document.getElementById('lobby-join-btn').onclick=joinRoom;
+  document.getElementById('lobby-name').addEventListener('keydown',e=>{if(e.key==='Enter')joinRoom();});
+}
+
+// ── Join ───────────────────────────────────────────────────────────────────
+async function joinRoom(){
+  const nameInput=document.getElementById('lobby-name');
+  myName=nameInput.value.trim();
+  if(!myName){alert('Please enter your name.');return;}
+  myUserId=sessionStorage.getItem('rf-uid')||crypto.randomUUID();
+  sessionStorage.setItem('rf-uid',myUserId);
+  sessionStorage.setItem('rf-name',myName);
+  nameInput.disabled=true;
+  document.getElementById('lobby-join-btn').disabled=true;
+
+  const snap=await get(ref(db,`rooms/${roomId}`));
+  if(!snap.exists()){
+    await set(ref(db,`rooms/${roomId}/meta`),{facilitator:myUserId,phase:'lobby',createdAt:Date.now()});
+    isFacilitator=true;
+  } else {
+    isFacilitator=(snap.val().meta||{}).facilitator===myUserId;
+  }
+  const userRef=ref(db,`rooms/${roomId}/users/${myUserId}`);
+  await set(userRef,{name:myName,joinedAt:Date.now()});
+  onDisconnect(userRef).remove();
+  listenToRoom();
+}
+
+// ── Listeners ──────────────────────────────────────────────────────────────
+function listenToRoom(){
+  onValue(ref(db,`rooms/${roomId}/meta`),snap=>{
+    if(!snap.exists())return;
+    const meta=snap.val();
+    isFacilitator=(meta.facilitator===myUserId);
+    if(meta.phase!==currentPhase){currentPhase=meta.phase;renderPhase();}
+  });
+  onValue(ref(db,`rooms/${roomId}/users`),snap=>{
+    allUsers=snap.val()||{};
+    renderAvatars();renderLobbyUserList();updateWritingStatus();
+  });
+  onValue(ref(db,`rooms/${roomId}/cards`),snap=>{
+    allCards=snap.val()||{};
+    if(currentPhase==='writing') renderWritingCards();
+    if(currentPhase==='voting')  renderVotingCards();
+    if(currentPhase==='discussion') renderDiscussion();
+    updateWritingStatus();updateRevealButton();
+  });
+  onValue(ref(db,`rooms/${roomId}/votes`),snap=>{
+    allVotes=snap.val()||{};
+    if(currentPhase==='voting') renderVotingCards();
+    if(currentPhase==='discussion') renderDiscussion();
+  });
+  // Lane submit state — shared across all users
+  onValue(ref(db,`rooms/${roomId}/laneSubmits`),snap=>{
+    const ls=snap.val()||{};
+    // Rebuild my submitted lanes from Firebase
+    submittedLanes=new Set(Object.entries(ls).filter(([,v])=>v[myUserId]).map(([l])=>l));
+    if(currentPhase==='writing') syncLaneStates();
+  });
+  renderPhase();
+}
+
+// ── Phase router ───────────────────────────────────────────────────────────
+function renderPhase(){
+  const badge=document.getElementById('tb-phase');
+  badge.style.display='inline-block';
+  const cfgs={
+    lobby:      {label:'Lobby',      bg:'var(--surface)',color:'var(--text-secondary)'},
+    writing:    {label:'Writing',    bg:'var(--keep)',   color:'var(--keep-text)'},
+    reveal:     {label:'Revealing',  bg:'var(--improve)',color:'var(--improve-text)'},
+    voting:     {label:'Voting',     bg:'var(--add)',    color:'var(--add-text)'},
+    discussion: {label:'Discussion', bg:'var(--accent)', color:'#fff'},
+  };
+  const cfg=cfgs[currentPhase]||cfgs.lobby;
+  badge.textContent=cfg.label;badge.style.background=cfg.bg;badge.style.color=cfg.color;
+  ['lobby','writing','reveal','voting','discussion'].forEach(p=>{
+    const el=document.getElementById(p+'-screen');
+    if(el) el.style.display=p===currentPhase?'block':'none';
+  });
+  if(currentPhase==='lobby')      setupLobbyPhase();
+  if(currentPhase==='writing')    setupWritingPhase();
+  if(currentPhase==='reveal')     setupRevealPhase();
+  if(currentPhase==='voting')     setupVotingPhase();
+  if(currentPhase==='discussion') renderDiscussion();
+}
+
+// ── Lobby ──────────────────────────────────────────────────────────────────
+function setupLobbyPhase(){
+  renderLobbyUserList();
+  if(isFacilitator){
+    document.getElementById('lobby-fac-area').style.display='block';
+    document.getElementById('lobby-waiting-msg').style.display='none';
+    document.getElementById('lobby-start-btn').onclick=()=>update(ref(db,`rooms/${roomId}/meta`),{phase:'writing'});
+  } else {
+    document.getElementById('lobby-fac-area').style.display='none';
+    document.getElementById('lobby-waiting-msg').style.display='block';
+  }
+}
+function renderLobbyUserList(){
+  const list=document.getElementById('lobby-user-list');
+  if(!Object.keys(allUsers).length){list.style.display='none';return;}
+  list.style.display='block';
+  list.querySelectorAll('.waiting-item').forEach(i=>i.remove());
+  Object.entries(allUsers).forEach(([uid,u])=>{
+    const div=document.createElement('div');div.className='waiting-item';
+    div.innerHTML=`<span class="online-dot"></span>${esc(u.name)}${uid===myUserId?' (you)':''}`;
+    list.appendChild(div);
+  });
+}
+
+// ── Writing phase ──────────────────────────────────────────────────────────
+function setupWritingPhase(){
+  buildLaneGrid();
+  syncLaneStates();
+  renderWritingCards();
+  updateWritingStatus();
+  updateRevealButton();
+  document.getElementById('writing-fac-bar').style.display=isFacilitator?'flex':'none';
+  document.getElementById('writing-status-nonFac').style.display=isFacilitator?'none':'block';
+  document.getElementById('writing-status-nonFac').textContent='Write your cards lane by lane. Submit each lane to unlock the next.';
+  const revBtn=document.getElementById('reveal-btn');
+  revBtn.onclick=()=>update(ref(db,`rooms/${roomId}/meta`),{phase:'reveal'});
+}
+
+function buildLaneGrid(){
+  const grid=document.getElementById('lane-grid');
+  if(grid.querySelector('.lane'))return;
+  LANES.forEach((lane,idx)=>{
+    const col=document.createElement('div');
+    col.className='lane'+(idx>0?' pending':'');
+    col.id=`lane-col-${lane}`;
+    col.innerHTML=`
+      <div class="lane-header">
+        <span class="lane-badge" style="background:var(--${lane});color:var(--${lane}-text)">${LANE_LABELS[lane]}</span>
+        <span class="lane-status-chip" id="chip-${lane}" style="font-size:11px;color:var(--text-secondary)">${idx===0?'open':'locked'}</span>
+      </div>
+      <div class="lane-timer" id="ltimer-${lane}" style="display:none">
+        <div class="lane-timer-disp" id="ltdisp-${lane}">2:00</div>
+        <div class="lane-timer-bar-wrap"><div class="lane-timer-bar" id="ltbar-${lane}" style="width:100%"></div></div>
+      </div>
+      <div class="lane-cards" id="cards-${lane}"></div>
+      <div class="lane-input" id="linput-${lane}">
+        <textarea id="ta-${lane}" placeholder="Type a card for ${LANE_LABELS[lane]}…" rows="2"></textarea>
+        <div class="flex gap-8 mt-12" style="justify-content:space-between;flex-wrap:wrap">
+          <button class="btn-sm" id="add-btn-${lane}">+ Add card</button>
+          <button class="btn-sm" id="submit-btn-${lane}" style="background:var(--accent-dk)">Submit ${LANE_LABELS[lane]} →</button>
+        </div>
+      </div>
+      <div class="lane-status-msg" id="lmsg-${lane}" style="display:none"></div>`;
+    grid.appendChild(col);
+
+    document.getElementById(`add-btn-${lane}`).onclick=()=>addCard(lane);
+    document.getElementById(`ta-${lane}`).addEventListener('keydown',e=>{
+      if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();addCard(lane);}
+    });
+    document.getElementById(`submit-btn-${lane}`).onclick=()=>submitLane(lane);
+  });
+}
+
+// Add a card to Firebase immediately (before submit)
+async function addCard(lane){
+  if(submittedLanes.has(lane))return;
+  const ta=document.getElementById(`ta-${lane}`);
+  const txt=ta.value.trim();
+  if(!txt)return;
+  const cardId=`card_${Date.now()}_${lane}_${Math.random().toString(36).slice(2,6)}`;
+  await set(ref(db,`rooms/${roomId}/cards/${cardId}`),{
+    authorId:myUserId,lane,text:txt,submittedAt:Date.now()
+  });
+  ta.value='';ta.focus();
+}
+
+// Delete own card
+async function deleteCard(cardId){
+  await remove(ref(db,`rooms/${roomId}/cards/${cardId}`));
+}
+
+function renderWritingCards(){
+  LANES.forEach(lane=>{
+    const container=document.getElementById('cards-'+lane);
+    if(!container)return;
+    container.innerHTML='';
+    Object.entries(allCards).forEach(([cid,c])=>{
+      if(c.lane!==lane)return;
+      const div=document.createElement('div');
+      if(c.authorId===myUserId){
+        div.className='card';
+        const isLocked=submittedLanes.has(lane);
+        div.innerHTML=`<div class="my-card">
+          <span class="my-card-text">${esc(c.text)}</span>
+          ${!isLocked?`<button class="btn-danger-sm" data-cid="${cid}">✕</button>`:''}
+        </div>`;
+        if(!isLocked){
+          div.querySelector('.btn-danger-sm').onclick=()=>deleteCard(cid);
+        }
+      } else {
+        div.className='card card-hidden';div.textContent='···';
+      }
+      container.appendChild(div);
+    });
+  });
+}
+
+// Submit a lane: lock it, record in Firebase, start timer for next lane
+async function submitLane(lane){
+  const myCardsInLane=Object.entries(allCards).filter(([,c])=>c.lane===lane&&c.authorId===myUserId);
+  if(myCardsInLane.length===0){alert(`Add at least one card to ${LANE_LABELS[lane]} before submitting.`);return;}
+  // Record submit in Firebase
+  await set(ref(db,`rooms/${roomId}/laneSubmits/${lane}/${myUserId}`),true);
+  submittedLanes.add(lane);
+  syncLaneStates();
+}
+
+function syncLaneStates(){
+  LANES.forEach((lane,idx)=>{
+    const col=document.getElementById(`lane-col-${lane}`);
+    const chip=document.getElementById(`chip-${lane}`);
+    const inputArea=document.getElementById(`linput-${lane}`);
+    const msgEl=document.getElementById(`lmsg-${lane}`);
+    const timerEl=document.getElementById(`ltimer-${lane}`);
+    if(!col)return;
+
+    const isSubmitted=submittedLanes.has(lane);
+    const prevSubmitted=idx===0||submittedLanes.has(LANES[idx-1]);
+    const isOpen=!isSubmitted&&prevSubmitted;
+    const isPending=!isSubmitted&&!prevSubmitted;
+
+    col.classList.toggle('locked',isSubmitted);
+    col.classList.toggle('pending',isPending);
+    col.classList.remove('open');
+
+    if(isSubmitted){
+      chip.textContent='submitted';chip.style.color='var(--add-text)';
+      inputArea.style.display='none';msgEl.style.display='none';
+      timerEl.style.display='none';
+      if(laneTimerIntervals[lane]){clearInterval(laneTimerIntervals[lane]);delete laneTimerIntervals[lane];}
+    } else if(isOpen){
+      chip.textContent='open';chip.style.color='var(--accent)';
+      inputArea.style.display='block';msgEl.style.display='none';
+      col.classList.remove('pending');
+      // Start lane timer if not already running
+      if(!laneTimerIntervals[lane]) startLaneTimer(lane);
+    } else {
+      chip.textContent='locked';chip.style.color='var(--text-secondary)';
+      inputArea.style.display='none';
+      timerEl.style.display='none';
+      msgEl.style.display='block';msgEl.textContent='Unlocks after previous lane is submitted';
+    }
+  });
+  renderWritingCards();
+  updateRevealButton();
+}
+
+// 2-min countdown per lane — purely local (UX only, not synced)
+function startLaneTimer(lane){
+  const timerEl=document.getElementById(`ltimer-${lane}`);
+  const dispEl=document.getElementById(`ltdisp-${lane}`);
+  const barEl=document.getElementById(`ltbar-${lane}`);
+  if(!timerEl||!dispEl||!barEl)return;
+  timerEl.style.display='flex';
+  let remaining=LANE_TIMER;
+  function tick(){
+    const m=Math.floor(remaining/60),s=remaining%60;
+    dispEl.textContent=`${m}:${String(s).padStart(2,'0')}`;
+    const pct=(remaining/LANE_TIMER)*100;
+    barEl.style.width=pct+'%';
+    const urgent=remaining<=30;
+    dispEl.classList.toggle('urgent',urgent);barEl.classList.toggle('urgent',urgent);
+    if(remaining<=0){
+      clearInterval(laneTimerIntervals[lane]);delete laneTimerIntervals[lane];
+      dispEl.textContent='0:00';barEl.style.width='0%';
+      ringBell();
+      // Auto-submit if user hasn't yet
+      if(!submittedLanes.has(lane)){
+        const myCards=Object.entries(allCards).filter(([,c])=>c.lane===lane&&c.authorId===myUserId);
+        if(myCards.length>0) submitLane(lane);
+      }
+    }
+    remaining--;
+  }
+  tick();
+  laneTimerIntervals[lane]=setInterval(tick,1000);
+}
+
+function updateWritingStatus(){
+  if(currentPhase!=='writing')return;
+  // Count how many users have submitted ALL 4 lanes
+  const snap={}; // we use allCards as proxy: user submitted if they have cards in all 4 lanes
+  // Actually count via laneSubmits — but we don't store that locally; use allCards per lane
+  const userLaneCounts={};
+  Object.values(allCards).forEach(c=>{
+    if(!userLaneCounts[c.authorId]) userLaneCounts[c.authorId]={};
+    userLaneCounts[c.authorId][c.lane]=true;
+  });
+  const total=Object.keys(allUsers).length;
+  const el=document.getElementById('writing-submit-count');
+  if(el) el.textContent=`${submittedLanes.size} / ${LANES.length}`;
+}
+
+function updateRevealButton(){
+  if(currentPhase!=='writing'||!isFacilitator)return;
+  // Enable reveal when every user has submitted all 4 lanes
+  // Proxy: check that each user has at least one card in each lane
+  const userLanes={};
+  Object.values(allCards).forEach(c=>{
+    if(!userLanes[c.authorId]) userLanes[c.authorId]=new Set();
+    userLanes[c.authorId].add(c.lane);
+  });
+  const total=Object.keys(allUsers).length;
+  const allDone=total>0&&Object.keys(allUsers).every(uid=>userLanes[uid]&&LANES.every(l=>userLanes[uid].has(l)));
+  const btn=document.getElementById('reveal-btn');
+  if(btn) btn.disabled=!allDone;
+}
+
+// ── Reveal ─────────────────────────────────────────────────────────────────
+function setupRevealPhase(){
+  setTimeout(()=>{if(isFacilitator)update(ref(db,`rooms/${roomId}/meta`),{phase:'voting'});},2000);
+}
+
+// ── Voting ─────────────────────────────────────────────────────────────────
+function setupVotingPhase(){
+  const endBtn=document.getElementById('end-voting-btn');
+  endBtn.style.display=isFacilitator?'inline-block':'none';
+  endBtn.onclick=()=>update(ref(db,`rooms/${roomId}/meta`),{phase:'discussion'});
+  renderVotingCards();
+}
+
+function renderVotingCards(){
+  const grid=document.getElementById('voting-lane-grid');
+  if(!grid)return;
+  grid.innerHTML='';
+  LANES.forEach(lane=>{
+    const laneCards=Object.entries(allCards).filter(([,c])=>c.lane===lane);
+    const col=document.createElement('div');col.className='lane';
+    col.innerHTML=`<div class="lane-header"><span class="lane-badge" style="background:var(--${lane});color:var(--${lane}-text)">${LANE_LABELS[lane]}</span></div>`;
+    const area=document.createElement('div');
+    laneCards.forEach(([cid,c])=>{
+      const votes=allVotes[cid]||{};
+      const count=Object.keys(votes).length;
+      const alreadyVoted=!!votes[myUserId];
+      const card=document.createElement('div');card.className='card';
+      card.innerHTML=`<div class="card-vote-row">
+        <div style="flex:1"><div>${esc(c.text)}</div><div class="vote-count">${count} vote${count!==1?'s':''}</div></div>
+        <button class="vote-btn" ${alreadyVoted?'disabled':''}>${alreadyVoted?'voted':'+ vote'}</button>
+      </div>`;
+      if(!alreadyVoted) card.querySelector('.vote-btn').addEventListener('click',()=>castVote(cid));
+      area.appendChild(card);
+    });
+    col.appendChild(area);grid.appendChild(col);
+  });
+}
+
+async function castVote(cardId){
+  const votes=allVotes[cardId]||{};
+  if(votes[myUserId])return;
+  await set(ref(db,`rooms/${roomId}/votes/${cardId}/${myUserId}`),true);
+}
+
+// ── Discussion ─────────────────────────────────────────────────────────────
+function getSortedCards(){
+  return Object.entries(allCards).map(([cid,c])=>({
+    cid,c,voteCount:Object.keys(allVotes[cid]||{}).length
+  })).sort((a,b)=>b.voteCount-a.voteCount);
+}
+
+function renderDiscussion(){
+  const list=document.getElementById('discussion-list');
+  if(!list)return;
+  const sorted=getSortedCards();
+  list.innerHTML='';
+  sorted.forEach(({cid,c,voteCount})=>{
+    const hasVotes=voteCount>0;
+    const wrapper=document.createElement('div');wrapper.className='disc-card';wrapper.id=`disc-${cid}`;
+    const topRow=document.createElement('div');
+    topRow.style.cssText=`display:flex;align-items:flex-start;gap:14px;margin-bottom:${hasVotes?'10px':'0'}`;
+    topRow.innerHTML=`
+      <span class="disc-badge" style="background:var(--${c.lane});color:var(--${c.lane}-text)">${LANE_LABELS[c.lane]}</span>
+      <div style="flex:1;font-size:14px">${esc(c.text)}</div>
+      <span style="font-size:12px;font-weight:500;color:var(--accent);min-width:32px;text-align:right;margin-top:2px">${voteCount} ▲</span>`;
+    wrapper.appendChild(topRow);
+    if(hasVotes){
+      const tb=document.createElement('div');tb.className='timer-block';tb.id=`timer-wrap-${cid}`;
+      tb.innerHTML=`
+        <div class="timer-display" id="timer-disp-${cid}">4:00</div>
+        <div class="timer-bar-wrap"><div class="timer-bar" id="timer-bar-${cid}" style="width:100%"></div></div>
+        ${isFacilitator
+          ? `<button class="btn-sm" id="timer-start-${cid}">Start</button>
+             <button class="btn-danger" id="timer-stop-${cid}" style="padding:6px 14px;font-size:12px;display:none">Stop</button>`
+          : `<span style="font-size:12px;color:var(--text-secondary)" id="timer-status-${cid}">waiting…</span>`}`;
+      wrapper.appendChild(tb);
+    }
+    list.appendChild(wrapper);
+  });
+
+  if(isFacilitator){
+    sorted.filter(({voteCount})=>voteCount>0).forEach(({cid})=>{
+      const s=document.getElementById(`timer-start-${cid}`);
+      const t=document.getElementById(`timer-stop-${cid}`);
+      if(s) s.onclick=()=>startDiscTimer(cid);
+      if(t) t.onclick=()=>stopDiscTimer(cid);
+    });
+  }
+  listenToDiscTimer();
+  document.getElementById('export-btn').onclick=exportPDF;
+}
+
+// ── Discussion timer (Firebase-synced) ─────────────────────────────────────
+let discTimerInterval=null;
+function listenToDiscTimer(){
+  onValue(ref(db,`rooms/${roomId}/timer`),snap=>{
+    if(discTimerInterval){clearInterval(discTimerInterval);discTimerInterval=null;}
+    if(!snap.exists()){resetAllTimerDisplays();return;}
+    const t=snap.val();
+    updateTimerButtons(t.cardId,t.running);
+    if(t.running){
+      function tick(){
+        const elapsed=Math.floor((Date.now()-t.startedAt)/1000);
+        const remaining=Math.max(0,DISC_TIMER-elapsed);
+        updateTimerDisplay(t.cardId,remaining);
+        if(remaining<=0){
+          clearInterval(discTimerInterval);discTimerInterval=null;
+          ringBell();
+          if(isFacilitator) set(ref(db,`rooms/${roomId}/timer`),{running:false,cardId:t.cardId,startedAt:0});
+        }
+      }
+      tick();discTimerInterval=setInterval(tick,1000);
+    } else {
+      updateTimerDisplay(t.cardId,DISC_TIMER);
+    }
+  });
+}
+function startDiscTimer(cid){
+  if(discTimerInterval){clearInterval(discTimerInterval);discTimerInterval=null;}
+  set(ref(db,`rooms/${roomId}/timer`),{running:true,cardId:cid,startedAt:Date.now()});
+}
+function stopDiscTimer(cid){
+  if(discTimerInterval){clearInterval(discTimerInterval);discTimerInterval=null;}
+  set(ref(db,`rooms/${roomId}/timer`),{running:false,cardId:cid,startedAt:0});
+}
+function updateTimerButtons(cid,running){
+  const s=document.getElementById(`timer-start-${cid}`);
+  const t=document.getElementById(`timer-stop-${cid}`);
+  const st=document.getElementById(`timer-status-${cid}`);
+  if(s) s.style.display=running?'none':'inline-block';
+  if(t) t.style.display=running?'inline-block':'none';
+  if(st) st.textContent=running?'running…':'waiting…';
+}
+function updateTimerDisplay(cid,remaining){
+  const d=document.getElementById(`timer-disp-${cid}`);
+  const b=document.getElementById(`timer-bar-${cid}`);
+  if(!d||!b)return;
+  const m=Math.floor(remaining/60),s=remaining%60;
+  d.textContent=`${m}:${String(s).padStart(2,'0')}`;
+  b.style.width=(remaining/DISC_TIMER*100)+'%';
+  d.classList.toggle('urgent',remaining<=30);b.classList.toggle('urgent',remaining<=30);
+}
+function resetAllTimerDisplays(){
+  document.querySelectorAll('[id^="timer-disp-"]').forEach(el=>{
+    updateTimerDisplay(el.id.replace('timer-disp-',''),DISC_TIMER);
+    updateTimerButtons(el.id.replace('timer-disp-',''),false);
+  });
+}
+
+// ── Bell ───────────────────────────────────────────────────────────────────
+function ringBell(){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    [0,.3,.6].forEach(delay=>{
+      const o=ctx.createOscillator(),g=ctx.createGain();
+      o.connect(g);g.connect(ctx.destination);
+      o.type='sine';o.frequency.value=880;
+      g.gain.setValueAtTime(.4,ctx.currentTime+delay);
+      g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+delay+.8);
+      o.start(ctx.currentTime+delay);o.stop(ctx.currentTime+delay+.9);
+    });
+  }catch(e){}
+}
+
+// ── PDF Export ─────────────────────────────────────────────────────────────
+function exportPDF(){
+  const{jsPDF}=window.jspdf;
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const sorted=getSortedCards();
+  const pageW=210,margin=20,contentW=pageW-margin*2;
+  let y=margin;
+  doc.setFillColor(243,241,249);doc.rect(0,0,pageW,28,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(18);doc.setTextColor(45,43,61);doc.text('retro-flex',margin,17);
+  doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(138,135,160);
+  doc.text(`Room: ${roomId}`,margin+52,17);
+  doc.text(new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}),pageW-margin,17,{align:'right'});
+  y=38;
+  const laneColors={drop:{bg:[245,196,179],text:[122,51,32]},add:{bg:[184,220,202],text:[30,92,66]},keep:{bg:[200,196,236],text:[60,52,137]},improve:{bg:[249,217,168],text:[122,80,32]}};
+  LANES.forEach(lane=>{
+    const laneCards=sorted.filter(({c})=>c.lane===lane);
+    if(!laneCards.length)return;
+    if(y>260){doc.addPage();y=margin;}
+    const lc=laneColors[lane];
+    doc.setFillColor(...lc.bg);doc.roundedRect(margin,y,40,7,2,2,'F');
+    doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(...lc.text);
+    doc.text(LANE_LABELS[lane].toUpperCase(),margin+20,y+4.8,{align:'center'});
+    y+=12;
+    laneCards.forEach(({c,voteCount})=>{
+      if(y>270){doc.addPage();y=margin;}
+      doc.setFillColor(255,255,255);doc.setDrawColor(226,223,238);doc.setLineWidth(.3);
+      const lines=doc.splitTextToSize(c.text,contentW-24);
+      const cardH=Math.max(14,lines.length*5.5+8);
+      doc.roundedRect(margin,y,contentW,cardH,3,3,'FD');
+      doc.setFont('helvetica','normal');doc.setFontSize(10);doc.setTextColor(45,43,61);
+      doc.text(lines,margin+6,y+6.5);
+      if(voteCount>0){
+        doc.setFillColor(155,143,212);doc.roundedRect(margin+contentW-16,y+2,14,6,2,2,'F');
+        doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(255,255,255);
+        doc.text(`${voteCount}▲`,margin+contentW-9,y+6.2,{align:'center'});
+      }
+      y+=cardH+4;
+    });
+    y+=6;
+  });
+  const pc=doc.getNumberOfPages();
+  for(let i=1;i<=pc;i++){
+    doc.setPage(i);doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(180,178,169);
+    doc.text(`retro-flex · ${roomId} · page ${i} of ${pc}`,pageW/2,292,{align:'center'});
+  }
+  doc.save(`retro-flex-${roomId}.pdf`);
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function show(id){
+  ['landing','lobby','writing','reveal','voting','discussion'].forEach(s=>{
+    const el=document.getElementById(s+'-screen');if(el)el.style.display=s===id?'block':'none';
+  });
+}
+function renderAvatars(){
+  const c=document.getElementById('tb-avatars');c.innerHTML='';
+  const cols=[{bg:'var(--keep)',c:'var(--keep-text)'},{bg:'var(--add)',c:'var(--add-text)'},{bg:'var(--improve)',c:'var(--improve-text)'},{bg:'var(--drop)',c:'var(--drop-text)'}];
+  Object.entries(allUsers).forEach(([,u],i)=>{
+    const av=document.createElement('div');av.className='av';
+    const col=cols[i%cols.length];av.style.background=col.bg;av.style.color=col.c;
+    av.title=u.name;av.textContent=u.name.charAt(0).toUpperCase();
+    c.appendChild(av);
+  });
+}
+function showError(msg){document.getElementById('error-area').innerHTML=`<div class="error-banner">${msg}</div>`;}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+</script>
+</body>
+</html>
